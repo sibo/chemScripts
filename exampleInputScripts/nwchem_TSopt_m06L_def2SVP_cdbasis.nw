@@ -1,0 +1,35 @@
+memory heap 100 mb stack 1200 mb global 2500 mb
+title "descriptive title of your calculation"
+echo
+geometry units angstroms
+  load guess.xyz
+end
+basis
+  * library Def2-SVP except Cr
+  Cr library Def2-TZVP
+end
+basis “cd basis”
+  * library “Ahlrichs Coulomb Fitting”
+end
+driver
+  xyz optFrames/opt
+  maxiter 200
+end
+task shell mkdir optFrames
+charge 1
+dft
+    grid fine
+    mult 4
+    xc m06-l
+    iterations 100
+    disp vdw 3
+    print low
+end
+#use geometry adjust block to fix atoms/coordinates for constrained geometry optimization
+#geometry adjust
+#    zcoord
+#        bond 34 35 2.1 constant
+#    end
+#end
+# task dft optimize
+task dft saddle
