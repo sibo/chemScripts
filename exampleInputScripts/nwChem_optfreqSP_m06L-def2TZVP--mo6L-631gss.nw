@@ -1,0 +1,33 @@
+memory heap 200 mb stack 1800 mb global 6000 mb
+title "m06-l/def2-TZVP//m06-l/6-31g(d,p)/LANL2DZ-Cr"
+echo
+geometry units angstroms
+  load xtbopt.xyz
+end
+basis
+  * library 6-31g** except Cr
+  Cr library lanl2dz_ecp
+end
+ecp
+  Cr library lanl2dz_ecp
+end
+driver
+  xyz optFrame
+  maxiter 300
+end
+charge 1
+dft
+    grid fine
+    mult 4
+    xc m06-l
+    iterations 100
+    disp vdw 3
+    print low
+    direct
+end
+task dft optimize
+task dft freq
+basis
+  * library Def2-TZVP
+end
+task dft energy
