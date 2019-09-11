@@ -1,0 +1,54 @@
+memory heap 200 mb stack 1000 mb global 2800 mb
+start calc
+title "m06-l/def2-TZVP//m06-l/6-31g(d,p)/LANL2DZ-Cr"
+echo
+geometry units angstroms
+  load guess.xyz
+end
+#geometry adjust #fix reaction coordinate (bond)
+#  zcoord
+#    bond x y 1.8 constant
+#  end
+#end
+basis
+  * library 6-31g** except Cr
+  Cr library lanl2dz_ecp
+end
+ecp
+  Cr library lanl2dz_ecp
+end
+driver
+  maxiter 400
+end
+charge 1
+dft
+    grid fine
+    mult 4
+    xc m06-l
+    iterations 100
+    convergence energy 1d-8
+    print low
+    direct
+end
+task dft optimize
+driver
+  xyz optFine
+end
+dft
+  convergence energy 1d-10
+end
+task dft optimize
+#geometry adjust #unfix reaction coordinate
+#  zcoord
+#    bond x y
+#  end
+#end
+#driver
+#  xyz optSaddle
+#end
+#task dft saddle
+task dft freq
+basis
+  * library Def2-TZVP
+end
+task dft energy
