@@ -1,30 +1,30 @@
-memory heap 200 mb stack 1000 mb global 2800 mb
+memory heap 200 mb stack 1000 mb global 2800 mb     # settings for 24core job on Houston Computing Cluster
 start calc
-title "B97-D3/def2-TZVP//B97-D3/def2-SVP"
+title "B97-D3/def2-TZVP//B97-D3/def2-SVP"           # arbitrary title
 echo
-charge 0
+charge 0                                            # charge = 0 for neutral molecule
 dft
     grid fine
-    mult 1
-    xc becke97-d
-    disp vdw 3
+    mult 1                                          # multiplicity = 1 for non-radicals          
+    xc becke97-d                                    # B97-D functional
+    disp vdw 3                                      # D3 dispersion correction
     iterations 100
     convergence energy 1d-10
     print low
     direct
 end
 basis small
-  * library def2-svp
+  * library def2-svp                                # basis set for geometry optimization
 end
 basis large 
-  * library def2-tzvp
+  * library def2-tzvp                               # basis set for final energy evaluation
 end
 driver
   maxiter 400
 end
 
 geometry units angstroms
-  load frame 1 crest_conformers.xyz
+  load frame 1 crest_conformers.xyz                 # loads frame 1 of .xyz file
 end
 task shell "mkdir -p opt"
 driver
@@ -35,10 +35,10 @@ dft
   vectors input atomic output small.mos
 end
 task dft optimize
-#task dft freq
+#task dft freq                                      # uncomment this line to run a frequency calculation
 set "ao basis" large
 dft
-  vectors input project small small.mos output large.mos
+  vectors input project small small.mos output large.mos    #projects the orbitals from the small basis to the large basis
 end
 task dft energy
 task shell "echo conf 1 complete"
