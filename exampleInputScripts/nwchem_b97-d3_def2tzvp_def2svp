@@ -26,9 +26,9 @@ end
 geometry units angstroms
   load frame 1 crest_conformers.xyz
 end
-task shell "mkdir -p opt1"
+task shell "mkdir -p opt"
 driver
-  xyz opt1/
+  xyz opt/opt1
 end
 set "ao basis" small
 dft
