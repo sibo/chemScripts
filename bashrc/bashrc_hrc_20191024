@@ -29,7 +29,7 @@ function nwchem_clean() {
 export -f nwchem_clean
 function nwchem() {
         if [[ -z "$1" ]]; then
-                echo "Usage: $0 [inputFile.nw]";
+                echo "Usage: nwchem [inputFile.nw]";
                 echo "Try submitting job again"
                 return 1;
         fi
@@ -71,7 +71,7 @@ export -f nwchem
 
 function crest() {
         if [[ -z "$1" ]]; then
-                echo "Usage: $0 [inputFile.xyz] [-nci]";
+                echo "Usage: crest [inputFile.xyz] [-nci]";
                 echo "Try submitting job again"
                 return 1;
         fi
