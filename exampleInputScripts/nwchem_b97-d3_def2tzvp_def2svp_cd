@@ -19,6 +19,9 @@ end
 basis large 
   * library def2-tzvp                               # basis set for final energy evaluation
 end
+basis "cd basis" spherical                          # basis set for charge density fitting (aka resolution of identity approximation)
+  * library "Weigend Coulomb Fitting"
+end
 driver
   maxiter 400
 end
