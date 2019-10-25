@@ -1,0 +1,225 @@
+memory heap 200 mb stack 1000 mb global 2800 mb
+start calc
+title "B97-D3/def2-TZVP//B97-D3/def2-SVP"
+echo
+charge 0
+dft
+    grid fine
+    mult 1
+    xc becke97-d
+    disp vdw 3
+    iterations 100
+    convergence energy 1d-10
+    print low
+    direct
+end
+basis small
+  * library def2-svp
+end
+basis large 
+  * library def2-tzvp
+end
+driver
+  maxiter 400
+end
+
+### conf 1
+geometry units angstroms
+  load frame 1 crest_conformers.xyz
+end
+task shell "mkdir -p opt1"
+driver
+  xyz opt1/
+end
+set "ao basis" small
+dft
+  vectors input atomic output small.mos
+end
+task dft optimize
+set "ao basis" large
+dft
+  vectors input project small small.mos output large.mos
+end
+task dft energy
+task shell "echo conf 1 complete"
+
+### conf 2
+geometry units angstroms
+  load frame 2 crest_conformers.xyz
+end
+task shell "mkdir -p opt2"
+driver
+  xyz opt2/
+end
+set "ao basis" small
+dft
+  vectors input atomic output small.mos
+end
+task dft optimize
+set "ao basis" large
+dft
+  vectors input project small small.mos output large.mos
+end
+task dft energy
+task shell "echo conf 2 complete"
+
+### conf 3
+geometry units angstroms
+  load frame 3 crest_conformers.xyz
+end
+task shell "mkdir -p opt3"
+driver
+  xyz opt3/
+end
+set "ao basis" small
+dft
+  vectors input atomic output small.mos
+end
+task dft optimize
+set "ao basis" large
+dft
+  vectors input project small small.mos output large.mos
+end
+task dft energy
+task shell "echo conf 3 complete"
+
+### conf 4
+geometry units angstroms
+  load frame 4 crest_conformers.xyz
+end
+task shell "mkdir -p opt4"
+driver
+  xyz opt4/
+end
+set "ao basis" small
+dft
+  vectors input atomic output small.mos
+end
+task dft optimize
+set "ao basis" large
+dft
+  vectors input project small small.mos output large.mos
+end
+task dft energy
+task shell "echo conf 4 complete"
+
+### conf 5
+geometry units angstroms
+  load frame 5 crest_conformers.xyz
+end
+task shell "mkdir -p opt5"
+driver
+  xyz opt5/
+end
+set "ao basis" small
+dft
+  vectors input atomic output small.mos
+end
+task dft optimize
+set "ao basis" large
+dft
+  vectors input project small small.mos output large.mos
+end
+task dft energy
+task shell "echo conf 5 complete"
+
+### conf 6
+geometry units angstroms
+  load frame 6 crest_conformers.xyz
+end
+task shell "mkdir -p opt6"
+driver
+  xyz opt6/
+end
+set "ao basis" small
+dft
+  vectors input atomic output small.mos
+end
+task dft optimize
+set "ao basis" large
+dft
+  vectors input project small small.mos output large.mos
+end
+task dft energy
+task shell "echo conf 6 complete"
+
+### conf 7
+geometry units angstroms
+  load frame 7 crest_conformers.xyz
+end
+task shell "mkdir -p opt7"
+driver
+  xyz opt7/
+end
+set "ao basis" small
+dft
+  vectors input atomic output small.mos
+end
+task dft optimize
+set "ao basis" large
+dft
+  vectors input project small small.mos output large.mos
+end
+task dft energy
+task shell "echo conf 7 complete"
+
+### conf 8
+geometry units angstroms
+  load frame 8 crest_conformers.xyz
+end
+task shell "mkdir -p opt8"
+driver
+  xyz opt8/
+end
+set "ao basis" small
+dft
+  vectors input atomic output small.mos
+end
+task dft optimize
+set "ao basis" large
+dft
+  vectors input project small small.mos output large.mos
+end
+task dft energy
+task shell "echo conf 8 complete"
+
+### conf 9
+geometry units angstroms
+  load frame 9 crest_conformers.xyz
+end
+task shell "mkdir -p opt9"
+driver
+  xyz opt9/
+end
+set "ao basis" small
+dft
+  vectors input atomic output small.mos
+end
+task dft optimize
+set "ao basis" large
+dft
+  vectors input project small small.mos output large.mos
+end
+task dft energy
+task shell "echo conf 9 complete"
+
+### conf 10
+geometry units angstroms
+  load frame 10 crest_conformers.xyz
+end
+task shell "mkdir -p opt10"
+driver
+  xyz opt10/
+end
+set "ao basis" small
+dft
+  vectors input atomic output small.mos
+end
+task dft optimize
+set "ao basis" large
+dft
+  vectors input project small small.mos output large.mos
+end
+task dft energy
+task shell "echo conf 10 complete"
+
