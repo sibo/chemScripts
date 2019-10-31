@@ -5574,7 +5574,7 @@ class nwchem_job(qm_job):
             print("Running single-point in {}".format(last_folders(self.workdir, 2)))
             # start SP calculation
             with open(
-                os.path.join(self.workdir, "sp.out"), "w", newline=None
+                os.path.join(self.workdir, "nwchem.out"), "w", newline=None
             ) as outputfile:
                 call = [os.path.join(nwchempath, "nwchem"), "inp"]
                 subprocess.call(
@@ -5589,23 +5589,23 @@ class nwchem_job(qm_job):
             time.sleep(0.1)
         # check if scf is converged:
         self.success = False
-        if os.path.isfile(os.path.join(self.workdir, "sp.out")):
+        if os.path.isfile(os.path.join(self.workdir, "nwchem.out")):
             with open(
-                os.path.join(self.workdir, "sp.out"), "r", encoding=coding, newline=None
+                os.path.join(self.workdir, "nwchem.out"), "r", encoding=coding, newline=None
             ) as inp:
                 stor = inp.readlines()
-                fspe = "FINAL SINGLE POINT ENERGY"
+                fspe = "Total DFT energy ="
                 for line in stor:
                     if fspe in line:
                         self.energy = float(line.split()[4])
-                    if "ORCA TERMINATED NORMALLY" in line:
+                    if "Total times" in line:
                         self.success = True
         else:
             self.energy = None
             self.success = False
             print(
                 "WARNING: {} doesn't exist!".format(
-                    os.path.join(self.workdir, "sp.out")
+                    os.path.join(self.workdir, "nwchem.out")
                 )
             )
         if self.energy is None and self.success:
