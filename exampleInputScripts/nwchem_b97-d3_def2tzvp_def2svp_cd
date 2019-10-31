@@ -34,15 +34,9 @@ driver
   xyz opt/opt1
 end
 set "ao basis" small
-dft
-  vectors input atomic output small.mos
-end
 task dft optimize
 #task dft freq                                      # uncomment this line to run a frequency calculation
 set "ao basis" large
-dft
-  vectors input project small small.mos output large.mos    #projects the orbitals from the small basis to the large basis
-end
 task dft energy
 task shell "echo conf 1 complete"
 
