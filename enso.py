@@ -5463,10 +5463,9 @@ class nwchem_job(qm_job):
         for line in structure:
           f.write(line[0] + "\t" + line[2] + "\t" + line[3] + "\t" + line[4] + "\n")
         f.close()
-		return
-
-    def _calc(self):
-    def _sp(self):
+        return
+	
+	def writeInput(self):
         """NWChem input generation and single-point calculation"""
         if not self.boltzmann:
             # convert coord to xyz
@@ -5475,52 +5474,6 @@ class nwchem_job(qm_job):
             osp_calls = {
                 "tpss": [
                     "  xc xtpss03 ctpss03"
-                ],
-                "pw6b95": [
-                    "%MaxCore 8000",
-                    "! "
-                    + str(self.basis)
-                    + " pw6b95 grid5 rijcosx def2/j d3bj loosescf nososcf gridx4",
-                    "!     smallprint printgap noloewdin",
-                    "%output",
-                    "       print[P_BondOrder_M] 1",
-                    "       print[P_Mayer] 1",
-                    "       print[P_basis] 2",
-                    "end",
-                ],
-                "pbe0": [
-                    "%MaxCore 8000",
-                    "! "
-                    + str(self.basis)
-                    + " pbe0 grid5 rijcosx def2/j d3bj loosescf nososcf gridx4",
-                    "!     smallprint printgap noloewdin",
-                    "%output",
-                    "       print[P_BondOrder_M] 1",
-                    "       print[P_Mayer] 1",
-                    "       print[P_basis] 2",
-                    "end",
-                ],
-                "dsd-blyp": [
-                    "%MaxCore 8000",
-                    "! def2-TZVPP def2-TZVPP/c ri-dsd-blyp frozencore grid5 rijk def2/jk d3bj",
-                    "!     smallprint printgap noloewdin",
-                    "%output",
-                    "       print[P_BondOrder_M] 1",
-                    "       print[P_Mayer] 1",
-                    "       print[P_basis] 2",
-                    "end",
-                ],
-                "wb97x": [
-                    "%MaxCore 8000",
-                    "! "
-                    + str(self.basis)
-                    + " wb97x-d3 grid5 rijcosx def2/j loosescf nososcf gridx4",
-                    "!     smallprint printgap noloewdin",
-                    "%output",
-                    "       print[P_BondOrder_M] 1",
-                    "       print[P_Mayer] 1",
-                    "       print[P_basis] 2",
-                    "end",
                 ],
             }
             with open(os.path.join(self.workdir, "inp"), "w", newline=None) as inp:
@@ -5568,7 +5521,15 @@ class nwchem_job(qm_job):
                 # add solvent correction to input if solvent is specified and using COSMO
                 if self.solv and self.sm == "cosmo":
 					inp.write("cosmo\n  dielec  " + self.solvent_cosmo[self.solv] + "\nend")
-                inp.write("task dft energy")
+         return       
+
+    def _sp(self):
+        """NWChem input generation and single-point calculation"""
+        if not self.boltzmann:
+            # input generation
+            self.writeInput()
+			with open(os.path.join(self.workdir, "inp"), "w", newline=None) as inp:
+                inp.write("task dft energy\n")
             # Done writing input!
             time.sleep(0.02)
             print("Running single-point in {}".format(last_folders(self.workdir, 2)))
