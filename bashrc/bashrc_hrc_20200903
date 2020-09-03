@@ -1,0 +1,232 @@
+# .bashrc
+
+# Source global definitions
+if [ -f /etc/bashrc ]; then
+	. /etc/bashrc
+fi
+
+# User specific aliases and functions
+export PATH=$PATH:~/_programs/:~/_programs/scripts/
+export PYTHONPATH=$PYTHONPATH:~/_programs/goodvibes/goodvibes-3.0.1/goodvibes/
+alias jmol=~/_programs/jmol.sh
+alias nwchem_track="egrep '^@|P.Freq' < "
+alias nwchem_thermo="grep -E 'Thermal correction to Enthalpy|Total Entropy|Total DFT energy' < "
+#alias goodvibes="python3 ~/_programs/goodvibes/goodvibes-3.0.1/goodvibes/GoodVibes_NWChem.py --invert -100"
+#alias nwchem_clean="rm -f calc.b* calc.c* calc.d* calc.f* calc.g* calc.h* calc.m* calc.nmode calc.p calc.z* submit.sh.* ; ls"
+function goodvibes() {
+  txt="python3 ~/_programs/goodvibes/goodvibes-3.0.1/goodvibes/GoodVibes.py --invert -100 $1"
+  echo $txt
+  eval "$txt | grep -E 'Struct|****|output'"
+}
+export -f goodvibes
+
+function numJobs() {
+	jobsLimit=8
+	username="sxl"
+	jobsRunning=$(showq -r | grep $username | wc -l)
+	#jobsHeld=$(showq -r | grep $username | wc -l)
+	#echo "jobsRunning = $jobsRunning"
+	#echo "jobsHeld = $jobsHeld"
+	#echo "jobsLimit = $jobsLimit"
+	#if [ $jobsRunning -lt $jobsLimit ]; then
+#		id=$(showq -b | grep sxl | head -n1 | cut -d " " -f1);
+#		if [ $id ]; then
+#			qrls $id;
+#			echo "released job $id";
+#			updateq
+#		fi
+#	fi
+        return $jobsRunning;
+}
+export -f numJobs
+function nwchem_clean() {
+	if tail -1 output.out | grep "Total"
+	then
+		echo "Found completed calculation. Cleaning..."
+	elif [ "$1" == '-f' ]
+	then
+		echo "Forcing cleaning of incomplete calculation..."
+	else
+		echo "Calculation not complete. Not cleaning."
+		return 1
+	fi
+	rm -vf *.2ceri* *.b *.b^-1 *.c *.calcID *.cdfit *.db *.drv.hess *.gridpts.* *.movecs *.p *.zmat submit*.sh* *.calcID
+	ls
+	return 1
+}
+export -f nwchem_clean
+function nwchem() {
+        if [[ -z "$1" ]]; then
+                echo "Usage: ${FUNCNAME[0]} [inputFile.nw]";
+                echo "Try submitting job again"
+                return 1;
+        fi
+        if [[ -z "$2" ]]; then
+		NP=24
+ 	else
+		NP=$2
+	fi
+	if tail -1 output.out 2>/dev/null | grep "Total"
+	then
+		echo "Found complete calculation. Do you want to run anyways? (y/n)"
+		read -n 1 runAnyways
+		if [ $runAnyways == "y" ]
+		then
+			cat output.out > output.out.old
+			echo "copied old output to output.out.old"
+		else
+			return 1
+		fi
+	fi
+	calcName=$(basename "$PWD")
+	echo "#!/bin/bash
+#MSUB -l nodes=1:ppn=$NP
+#MSUB -l walltime=99:00:00:00
+#MSUB -l mem=100gb
+#export ARMCI_DEFAULT_SHMMAX=8192
+module load mpich-x86_64
+cd $PWD
+mpirun -np $NP nwchem_mpich $1 > output.out
+echo '$1 (nwchem) submitted on $NP processors'" > submit_$calcName.sh
+        tag=""
+        jobsRunning=$(numJobs)
+        if [[ $jobsRunning -gt 8 ]]; then
+          tag="-h";
+        fi
+        calcID=$(msub $tag submit_$calcName.sh)
+	#sh ~/_programs/scripts/updateq.sh;
+	echo "calcID is $calcID" | tee $calcID.calcID
+	echo "submitted calculation for $NP processors"
+	echo "to check job status, run 'showq' or 'checkjob -v <jobid>'"
+        echo "to kill, run 'qdel <jobid>'"
+	echo "to release hold, run 'qrls <jobid>'"
+	return 1;
+}
+export -f nwchem
+
+function xtb_run() {
+        if [[ -z "$1" ]]; then
+                echo "Usage: ${FUNCNAME[0]} [inputFile.nw]";
+                echo "Try submitting job again"
+                return 1;
+        fi
+	if tail -1 xtb.out 2>/dev/null | grep "Total"
+	then
+		echo "Found complete calculation. Do you want to run anyways? (y/n)"
+		read -n 1 runAnyways
+		if [ $runAnyways == "y" ]
+		then
+			cat xtb.out > xtb.out.old
+			echo "copied old output to xtb.out.old"
+		else
+			return 1
+		fi
+	fi
+	NP=24
+	calcName=$(basename "$PWD")
+	echo "#!/bin/bash
+#MSUB -l nodes=1:ppn=$NP
+#MSUB -l walltime=99:00:00:00
+#MSUB -l mem=100gb
+#export ARMCI_DEFAULT_SHMMAX=8192
+source ~/_programs/xtb/Config_xtb_env.bash
+ulimit -s unlimited
+cd $PWD
+~/_programs/xtb/bin/xtb $@ > xtb.out
+echo '$1 (xtb) submitted on $NP processors'" > submit_$calcName.sh
+        calcID=$(msub submit_$calcName.sh)
+	echo "calcID is $calcID" | tee $calcID.calcID
+	echo "submitted calculation on $NP processors"
+	echo "to check job status, run 'showq' or 'checkjob -v <jobid>'"
+        echo "to kill, run 'qdel <jobid>'"
+	return 1;
+}
+export -f xtb_run
+
+
+
+function crest() {
+        if [[ -z "$1" ]]; then
+                echo "Usage: ${FUNCNAME[0]} [inputFile.xyz] [-nci]";
+                echo "Try submitting job again"
+                return 1;
+        fi
+	if tail -1 crest.out 2>/dev/null | grep "CREST terminated normally"
+	then
+		echo "Found complete calculation. Do you want to run anyways? (y/n)"
+		read -n 1 runAnyways
+		if [ $runAnyways == "y" ]
+		then
+			cat crest.out > crest.out.old
+			echo "copied old crest.out to crest.out.old"
+		else
+			return 1
+		fi
+	fi
+	NP=24
+	calcName=$(basename "$PWD")
+	echo "#!/bin/bash
+#MSUB -l nodes=1:ppn=$NP
+#MSUB -l walltime=99:00:00:00
+#MSUB -l mem=100gb
+#export ARMCI_DEFAULT_SHMMAX=8192
+source ~/_programs/xtb/Config_xtb_env.bash
+ulimit -s unlimited
+export OMP_STACKSIZE=1G
+cd $PWD
+~/_programs/xtb/bin/crest $@ -T 24 > crest.out
+echo '$1 (crest) submitted on $NP processors'" > submit_$calcName.sh
+        calcID=$(msub submit_$calcName.sh)
+	echo "calcID is $calcID" | tee $calcID.calcID
+	echo "submitted calculation on $NP processors"
+	echo "to check job status, run 'showq' or 'checkjob -v <jobid>'"
+        echo "to kill, run 'qdel <jobid>'"
+	return 1;
+}
+export -f crest
+
+#set up XTB environment
+#source ~/_programs/xtb/Config_xtb_env.bash
+alias xtb=~/_programs/xtb/bin/xtb
+alias xtbTS=~/_programs/xtb/bin/xtbTS.py
+export PATH=$PATH:~/_programs/xtb/bin/:~/_programs/open-babel/bin/
+function xtb_thermo() {
+	if [[ -z "$1" ]]; then
+		echo "Usage: $0 [xtb_outputFile.out]";
+		echo "Try submitting job again"
+		return 1;
+	fi
+	#below if to check of xtb output is done
+	if tail -2 $1 2>/dev/null | grep "ratio c/w"
+	then
+		tail -1000 $1 | grep 'total E'
+	fi
+}
+export -f xtb_thermo
+ulimit -s unlimited
+export OMP_STACKSIZE=1G
+
+
+function cpxyz() {
+	cp `ls -tr opt*xyz | tail -1` $1
+}
+export -f cpxyz
+function prefixes() {
+  files=`ls -tr opt*xyz`
+  for file in $files
+  do
+    echo "${file%-*.xyz}"
+  done | sort -uV
+}
+export -f prefixes
+function collateXYZs () {
+  rm final.xyz
+  for prefix in $(prefixes)
+  do
+    cat `ls -tr ${prefix}-*.xyz | tail -1` >> final.xyz
+  done 
+}
+export -f collateXYZs
+
+
+
