@@ -23,9 +23,6 @@ memory heap 200 mb stack 1000 mb global 2800 mb
     basis large spherical
       * library def2-tzvp
     end
-    basis "cd basis" spherical
-      * library "Weigend Coulomb Fitting"
-    end
     geometry units angstroms noautosym
       load frame 24 ./PNPCr_LiuStructs.xyz
     end
