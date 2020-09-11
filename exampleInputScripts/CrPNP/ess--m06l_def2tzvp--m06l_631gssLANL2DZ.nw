@@ -1,0 +1,44 @@
+memory heap 200 mb stack 1000 mb global 2800 mb
+    start calc
+    title "Ess-style PNPCr method: M06-L/def2-TZVP//M06-L/6-31G**[LANL2DZ for Cr]"
+    echo
+    charge 1
+    dft
+        grid fine
+        mult 4
+        xc m06-l
+        disp off
+        iterations 999
+        convergence energy 1d-10
+        print low
+        direct
+    end
+    basis small cartesian
+      * library 6-31G** except Cr
+      Cr library "LANL2DZ ECP"
+    end
+    ecp
+      Cr library "LANL2DZ ECP"
+    end
+    basis large spherical
+      * library def2-tzvp
+    end
+    basis "cd basis" spherical
+      * library "Weigend Coulomb Fitting"
+    end
+    geometry units angstroms noautosym
+      load frame 24 ./PNPCr_LiuStructs.xyz
+    end
+    driver
+      sadstp 0.03
+      maxiter 300
+      xyz opt/opt
+    end
+    task shell "mkdir -p opt"
+    set "ao basis" small
+    task dft optimize
+    task dft freq numerical
+    unset ecp
+    set "ao basis" large
+    task dft energy
+    task shell "echo calculation complete"
