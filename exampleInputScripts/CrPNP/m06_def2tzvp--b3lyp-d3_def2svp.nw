@@ -1,0 +1,43 @@
+   memory heap 200 mb stack 1000 mb global 2800 mb
+    start calc
+    title "M06/def2-TZVP+W06//b3lyp-D3/def2-SVP+W06(NWChem)"
+    echo
+    charge 1
+    dft
+        grid fine
+        mult 4
+        xc b3lyp
+        disp vdw 3
+        iterations 999
+        convergence energy 1d-10
+        print low
+        direct
+    end
+    basis small spherical
+      * library def2-svp
+    end
+    basis large spherical
+      * library def2-tzvp
+    end
+    basis "cd basis" spherical
+      * library "Weigend Coulomb Fitting"
+    end
+    geometry units angstroms noautosym
+      load frame 24 ./PNPCr_LiuStructs.xyz
+    end
+    driver
+      sadstp 0.03
+      maxiter 300
+      xyz opt/opt
+    end
+    task shell "mkdir -p opt"
+    set "ao basis" small
+    task dft optimize
+    task dft freq numerical
+    dft
+      xc m06
+      disp off
+    end
+    set "ao basis" large
+    task dft energy
+    task shell "echo calculation complete"
