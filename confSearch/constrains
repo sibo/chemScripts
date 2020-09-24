@@ -1,0 +1,14 @@
+$scc
+  temp=6000
+$end
+$md
+  time=100.0 #ps
+  step=2000.0 #fs
+  temp=298.0 #K
+  shake=0 #0:off;1:X-H bonds constriane;2:all bonds constrained
+$end
+$metadyn
+  save=30
+  kpush=1.0
+  alp=0.7
+$end
