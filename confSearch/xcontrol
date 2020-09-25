@@ -1,0 +1,133 @@
+$cmd xtb start.xyz --input xcontrol --copy --define --omd
+$date 2020/09/24 at 18:24:21.142     
+$chrg 0
+$spin 0
+$gfn
+   method=2
+   scc=true
+   periodic=false
+$scc
+   maxiterations=250
+   temp=6000.000000000000
+   broydamp=.4000000000000000
+$opt
+   optlevel=loose
+   microcycle=20
+   maxcycle=0
+   maxdispl=1.000000000000000
+   hlow=.1000000000000000E-01
+   hessian=old
+   s6=20.00000000000000
+   kstretch=.4000000000000000
+   kbend   =.1300000000000000
+   ktorsion=.7500000000000000E-02
+   koutofp =.000000000000000
+   kvdw    =.000000000000000
+   kes     =.000000000000000
+   rcut    =8.366600265340756
+   ts=0
+   tsroot=0
+   exact rf=false
+$thermo
+   temp=298.1500000000000
+   sthr=50.00000000000000
+   imagthr=-20.00000000000000
+   scale=1.000000000000000
+$md
+   temp=298.0000000000000
+   time=100
+   dump=50.00000000000000
+   velo=0
+   nvt=1
+   skip=500
+   step=0.2
+   hmass=4
+   shake=0
+   sccacc=2.000000000000000
+$siman
+   dump=1000.000000000000
+   n=3
+   ewin=120.00000000000000
+   temp=1000.000000000000
+   enan=0
+   check=0
+$hess
+   sccacc=.3000000000000000
+   step=.5000000000000000E-02
+   scale=1.000000000000000
+$modef
+   n=31
+   step=1.000000000000000
+   updat=.2000000000000000
+   local=0
+   vthr=.000000000000000
+   prj=0
+   mode=7
+$cube
+   step=.4000000000000000
+   pthr=.5000000000000000E-01
+$symmetry
+   desy=.1000000000000000
+   maxat=200
+$embedding
+   at=7
+   es=true
+$write
+   esp=false
+   mos=false
+   gbw=false
+   tm mos=false
+   tm basis=false
+   lmo=false
+   density=false
+   spin population=false
+   spin density=false
+   fod=false
+   fod population=false
+   wiberg=true
+   wbo fragments=false
+   dipole=true
+   charges=true
+   mulliken=true
+   orbital energies=true
+   inertia=true
+   distances=true
+   angles=false
+   torsions=false
+   final struct=true
+   geosum=true
+   stm=false
+   modef=false
+   gbsa=false
+   vib_normal_modes=false
+   hessian.out=false
+$external
+$path
+   nrun=3
+   npoint=50
+   anopt=3
+   kpush=.5000000000000000E-01
+   kpull=-.4000000000000000E-01
+   ppull=.5000000000000000E-01
+   alp=.7000000000000000
+$split
+   fragment: 1,1-21
+$wall
+   potential=logfermi
+   alpha=30
+   beta=6.000000000000000
+   temp=300.0000000000000
+   autoscale=0.800000000000000
+   axisshift=3.500000000000000
+   sphere:auto, all
+$metadyn
+   kpush=1
+   alp=0.7
+   save=30
+   factor= 1.000000000000000
+$reactor
+   max=50
+   density=1.000000000000000 # in kg/L
+   kpush=.5000000000000000E-01
+   alp=.7000000000000000
+$end
