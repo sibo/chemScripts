@@ -1,0 +1,28 @@
+#!/bin/tcsh
+#WHERE TO RUN: 	in directory with NBO output files: calcName.nbo, calcName.31, ... calcName.77
+#HOW TO RUN: 	$ plotNBO calcName.XX firstOrbNo lastOrbNo
+#OUTPUT:		.jvxl files of the orbitals firstOrbNo to lastOrbNo in the calcName.XX file
+#				.png images of the aforementioned MOs from three orthogonal viewpoints
+#				index.html webpage to view a table of the .png images	
+#REQUIREMENTS:	Linux, Unix, or Mac OS X
+#				jmol must be executable from the terminal, by that name
+#					(this may require renaming 'jmol.sh' to simply 'jmol')
+#				the location(s) of jmol and this script must be included in the $PATH environmental variable
+	
+set dir = $PWD;
+if ($argv[3] == '') then
+	echo "You must pass three arguments to GenerateMOs: CalcID, First MO to plot, Last MO to plot";
+else
+	set i = $argv[2];
+	cd $dir;
+	mkdir MOPlot;
+	cd MOPlot;
+	while($i <= $argv[3])
+		echo "open $argv[1]; mo $i; mo fill; mo translucent; background white; mo cutoff 0.05; mo color yellow blue; write image png mo_$i.z.png; rotate y 90; rotate z 90; write image png mo_$i.x.png; rotate y 90; write image png mo_$i.y.png; write mo_$i.jvxl;" > script.spt;
+		jmol -ions script.spt;
+		rm script.spt;
+		@ i++;
+	end
+	cd ../
+#	plotNBO_staticHTML $argv[1] $argv[2] $argv[3];
+endif

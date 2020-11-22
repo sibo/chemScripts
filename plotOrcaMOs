@@ -1,0 +1,186 @@
+#!/usr/bin/python
+#WHERE TO RUN: 	in directory with Orca files: calcName.inp, calcName.out, calcName.gbw/ges
+#HOW TO RUN: 	$ plotOrcaMOs calcName.gbw/ges firstOrbNo lastOrbNo
+#OUTPUT:		.jvxl files of the MOs from firstOrbNo to lastOrbNo
+#				.png images of the aforementioned MOs from three orthogonal viewpoints
+#				index.html webpage to view a table of the .png images	
+#REQUIREMENTS:	Linux, Unix, or Mac OS X
+#				jmol must be executable from the terminal, by that name
+#					(this may require renaming 'jmol.sh' to simply 'jmol')
+#				the location(s) of jmol, python, orca, and this script must be included in the $PATH environmental variable
+
+#VARIABLES (you can edit these)
+zoom = 100;
+opacity = "translucent";
+bgColor = "white";
+isovalue = 0.05;
+orbColor = "yellow blue"
+width = 300;
+height = 300;
+
+#DON'T EDIT ANYTHING BELOW HERE UNLESS YOU KNOW WHAT YOU'RE DOING!
+import sys, os, shutil, subprocess
+
+def is_number(s):
+	try:
+		float(s)
+		return True
+	except ValueError:
+		return False
+        
+def tryOpen(file, fileNameWhole):
+	try:
+		file = open(fileNameWhole, "r")
+		return file
+	except IOError, e:
+		print "error trying to open " + fileNameWhole
+        return file
+   
+
+#make MO directory
+try:
+    os.stat("PlotOrcaMOs")
+    print "PlotOrcaMOs directory made"
+except:
+    os.mkdir("PlotOrcaMOs")
+    print "PlotOrcaMOs directory already exists"
+
+fileExt = os.path.splitext(sys.argv[1])[1]
+fileName = os.path.splitext(sys.argv[1])[0]
+
+#verify input(orca.gbw or .ges file, firstMOno, lastMOno) and .out file 
+if(not os.path.exists(sys.argv[1])):
+    print "Error: File does not exist: " + sys.argv[1]
+elif(not os.path.exists(fileName + ".out")):
+    print "Error: File does not exist: " + fileName + ".out"
+elif(fileExt != ".gbw" and fileExt != ".ges"): 
+    print "Error: File must be .gbw or .ges! not " + fileExt
+elif not(is_number(sys.argv[2]) and is_number(sys.argv[3])):
+    print "arguments 2 and 3 must be numbers!"
+try:
+    shutil.copy(sys.argv[1],"PlotOrcaMOs/" + sys.argv[1])
+    print sys.argv[1] + " copied to PlotOrcaMOs"
+except IOError, e:
+    print "Unable to copy file. %s" % e
+
+#read final geometry from SP or GO .out file
+
+#if GO (look for "FINAL ENERGY EVALUATION", then "CARTESIAN COORDINATES"), then copy final geom from .out to new .inp
+oldInp = open(fileName + ".inp","r")
+newInp = ""
+isGO = False
+finalCOORD = ""
+writingXYZ = False
+unrestricted = False
+
+#copy or modify lines from oldInp to use in a new input file
+for line in oldInp:
+    if ("!" in line and "OPT" in line and isGO == False):
+        isGO = True
+        print "this is a GO calc"
+        startRead = False
+        calcDone = False
+        for oldOutputLine in reversed(open(fileName + ".out").readlines()):
+            if "ORCA TERMINATED NORMALLY" in oldOutputLine:
+                calcDone = True
+                print "GO completed"
+            elif ("CARTESIAN COORDINATES (A.U.)" in oldOutputLine and calcDone == True):
+                startRead = True
+                print "starting reading"
+            elif ("CARTESIAN COORDINATES (A.U.)" in oldOutputLine and calcDone == False):
+                print "GO calculation not completed!"
+                break
+            elif (startRead == True and '.' in oldOutputLine):
+                finalCOORD = oldOutputLine + finalCOORD
+                print "finalCOORD is now " + finalCOORD
+            elif (startRead == True and "CARTESIAN" in oldOutputLine):
+                print "final geometry found from .out file: \n" +  finalCOORD
+                with open("PlotOrcaMOs/" + fileName + ".xyz","w") as newXYZ:
+                    newXYZ.write(finalCOORD)
+                break
+        newInp += line.replace("OPT","SP")
+    elif(isGO == True and line.replace(" ","").replace("\t","").find("*xyz") == 0):
+        print "writing XYZ now"
+        writingXYZ = True
+        newInp += line
+        newInp += finalCOORD
+    elif(isGO == True and writingXYZ == True):
+        if(line.replace(" ","").find("*") == 0):
+            writingXYZ = False
+            newInp += line
+        else:
+            pass
+    else:
+        print "adding " + line + " to newInp"
+        newInp += line
+oldInp.close()
+
+#cd PlotOrcaMOs
+os.chdir("PlotOrcaMOs")
+
+#write newInp to new input file, then append MO %plot instructions
+with open(fileName + ".inp","w") as newFile:
+    newFile.write(newInp)
+    newFile.write("\n\n%plots\n\tformat CUBE\n")
+    for x in range(int(sys.argv[2]),int(sys.argv[3])+1):
+        newFile.write("\tMO(\"mo_" + str(x) + "a.cube\"," + str(x) + ",0);\n")
+        if (unrestricted):
+            newFile.write("\tMO(\"mo_" + str(x) + "b.cube\"," + str(x) + ",1);\n")
+        print "plot mo" + str(x)
+    newFile.write("end\n")
+    
+#now run orca to generate .cube files
+subprocess.call("orca " + fileName + ".inp > " + fileName + ".out", shell=True)
+
+#when orca is complete, convert cubes to jvxls and pngs via jmol
+for x in range(int(sys.argv[2]),int(sys.argv[3])+1):
+    print "converting cube for MO " + str(x) + " to png and jvxl"
+    scriptTxt = "load " + fileName + ".xyz;\nisosurface sign " + orbColor + " color range -1 1 cutoff " + str(isovalue) + " mo_" + str(x) + "a.cube " + opacity + "; zoom " + str(zoom) + "; background " + bgColor + "; write image " + str(width) + " " + str(height) + "png mo_" + str(x) + "a.z.png; rotate y 90; rotate z 90; write image " + str(width) + " " + str(height) + "png mo_" + str(x) + "a.x.png; rotate y 90; write image " + str(width) + " " + str(height) + "png mo_" + str(x) + "a.y.png;\n"
+    if (unrestricted):
+        scriptTxt += "load " + fileName + ".xyz;\nisosurface sign " + orbColor + " color range -1 1 cutoff " + str(isovalue) + " mo_" + str(x) + "b.cube " + opacity + "; zoom " + str(zoom) + "; background " + bgColor + "; write image " + str(width) + " " + str(height) + "png mo_" + str(x) + "b.z.png; rotate y 90; rotate z 90; write image " + str(width) + " " + str(height) + "png mo_" + str(x) + "b.x.png; rotate y 90; write image " + str(width) + " " + str(height) + "png mo_" + str(x) + "b.y.png;\n"
+    with open("script.spt","w") as scriptFile:
+	    scriptFile.write(scriptTxt)
+    os.system("jmol -ions script.spt && rm mo_" + str(x) + "a.cube && rm mo_" + str(x) + "b.cube")
+
+#make index.html
+orbitalTxt=[]
+orbitalBetaTxt=[]
+with open(fileName + ".out","r") as outTxt:
+    recordingOrbitals = False
+    recordingBetaOrbitals = False
+    for line in outTxt:
+        if(not recordingOrbitals and line.find("ORBITAL ENERGIES") == 0):
+            recordingOrbitals = True
+        elif(recordingOrbitals and line.strip() == ""):
+            print "alpha orbitals recorded"
+            if unrestricted is False:
+                break
+            else:
+                recordingBetaOrbitals = True
+                recordingOrbitals = False
+        elif(recordingBetaOrbitals and line.strip() == ""):
+            print "beta orbitals recorded"
+            break
+        elif(recordingOrbitals and is_number(line.split()[0])):
+            orbitalTxt.append(line + "\n")
+            print "recording " + orbitalTxt[len(orbitalTxt)-1]
+        elif(recordingBetaOrbitals and is_number(line.split()[0])):
+            orbitalBetaTxt.append(line + "\n")
+            print "recording " + orbitalBetaTxt[len(orbitalBetaTxt)-1]
+
+htmlCode = "<html>\n<head>\n\t<style>img{width:100px;}div{float:left;}</style>\n</head>\n<body>\n<div><h1>" + fileName + ": alpha MOs</h1>\n<table>\n<tr><th>#</th><th>OCC</th><th>E(eV)</th><th>Irrep</th><th>view along x-axis</th><th>view along y-axis</th><th>view along z-axis</th></tr>\n"
+for x in range(int(sys.argv[2]),int(sys.argv[3])+1):
+    htmlCode += "<tr><td>" + orbitalTxt[x].split()[0] + "</td><td>" + orbitalTxt[x].split()[1] + "</td><td>" + orbitalTxt[x].split()[3] + "</td><td>" + orbitalTxt[x].split()[4] + "</td>"
+    htmlCode += "<td><a href=\"mo_"+str(x)+"a.x.png\"><img src=\"mo_"+str(x)+"a.x.png\" /></a></td><td><a href=\"mo_"+str(x)+"a.y.png\"><img src=\"mo_"+str(x)+"a.y.png\" /></a></td><td><a href=\"mo_"+str(x)+"a.z.png\"><img src=\"mo_"+str(x)+"a.z.png\" /></a></td>"
+if (unrestricted):
+    htmlCode += "</table>\n</div><div><h1>" + fileName + ": beta MOs</h1>\n<table>\n<tr><th>#</th><th>OCC</th><th>E(eV)</th><th>Irrep</th><th>view along x-axis</th><th>view along y-axis</th><th>view along z-axis</th></tr>\n"   
+    for x in range(int(sys.argv[2]),int(sys.argv[3])+1):
+        htmlCode += "<tr><td>" + orbitalBetaTxt[x].split()[0] + "</td><td>" + orbitalBetaTxt[x].split()[1] + "</td><td>" + orbitalBetaTxt[x].split()[3] + "</td><td>" + orbitalBetaTxt[x].split()[4] + "</td>"
+        htmlCode += "<td><a href=\"mo_"+str(x)+"b.x.png\"><img src=\"mo_"+str(x)+"b.x.png\" /></a></td><td><a href=\"mo_"+str(x)+"b.y.png\"><img src=\"mo_"+str(x)+"b.y.png\" /></a></td><td><a href=\"mo_"+str(x)+"b.z.png\"><img src=\"mo_"+str(x)+"b.z.png\" /></a></td>"
+
+htmlCode += "</table>\n</div>\n</body>\n</html>"
+with open("index.html","w") as htmlFile:
+    htmlFile.write(htmlCode)
+print "index.html written\n*****\nplotOrcaMOs completed\n*****"
+#cd ../   
+os.chdir("../")

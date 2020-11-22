@@ -1,0 +1,47 @@
+#!/usr/bin/python
+import sys
+
+def is_number(s):
+	try:
+		float(s)
+		return True
+	except ValueError:
+		return False
+
+f = open(sys.argv[1], "r")
+i = 0
+#startTable = 0
+#parseLine = 0
+#occ = "Yes"
+
+
+for line in f:
+    if(line.find("in the AO basis")):
+        list = "<html>\n<head>\n\t<style>img{width:300px;}</style>\n</head>\n<body>\n<h1>" + sys.argv[1] + ": " line.split()[0]"</h1>\n<table>\n<tr><th>Ene</th><th>MO#</th><th>Occ</th><th>view along x-axis</th><th>view along y-axis</th><th>view along z-axis</th></tr>\n"
+        
+'''
+for line in f:        
+	if(line.find("Optimization completed.")):
+		complete = 1
+	if(complete == 1 and i <= int(sys.argv[3])):
+		if(line.find("Alpha  occ. eigenvalues") != -1):
+			occ = "Yes"
+			parseLine = 1;
+		elif(line.find("Alpha virt. eigenvalues") != -1):
+			occ = "No"
+			parseLine = 1;
+		else:
+			parseLine = 0;
+		if(parseLine == 1):
+			for energy in line.split():
+				if(is_number(energy)):
+					i = i + 1
+					if(i >= int(sys.argv[2]) and i <= int(sys.argv[3])):
+						list += str("\t<tr><td>" + energy + "</td><td>" + str(i) + "</td><td>" + occ + "</td><td><a href=\"mo_"+str(i)+".x.png\"><img src=\"mo_"+str(i)+".x.png\" /></a></td><td><a href=\"mo_"+str(i)+".y.png\"><img src=\"mo_"+str(i)+".y.png\" /></a></td><td><a href=\"mo_"+str(i)+".z.png\"><img src=\"mo_"+str(i)+".z.png\" /></a></td></tr>\n")
+'''
+f.close();
+list += "</table>\n</body>\n</html>"
+f = open('MOPlot/index.html', 'w')
+f.write(list)
+f.close();
+
