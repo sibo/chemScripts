@@ -5,7 +5,11 @@ Spyder Editor
 This is a temporary script file.
 """
 
+cr_umol = 1 #umol of Cr per reactor
 nonane_mg = 1 #mg of nonane in each reactor, needs to be consistent across this set of experiments
+volume_mL = 4 #initial volume of reaction solution
+rxn_h = 1 #reaction time in hours
+cr_l_ratio = 1 #Cr/L molar ratio
 
 #calibration curve data--may need to modify this with new calibration curve values
 d = {'compound_name':["1-hexene","methylcyclopentane","methylenecyclopentane","1-octene","C8isomers","PhCl","nonane","1-decene","C10isomers","1-dodecene","C12isomers","1-tetradecene","C14isomers","1-hexadecene","C16isomers","C18+"],
@@ -17,6 +21,9 @@ offset=0.1 #fudge factor in minutes for peak identification
 
 import pandas as pd
 calib_curve = pd.DataFrame(data=d)
+
+def index_to_letter(i):
+    return chr(i+65)
 
 def parse_GCMS(retention_times):
     """Parse all GC-MS OpenChrom Reports in the same directory as this python file
@@ -126,9 +133,13 @@ def GCMSarea_to_excel(areas):
     import os
     print("writing areas to Excel: " + str(areas))
     wb = Workbook()
-    ws0 = wb.active
-    ws0.title = "exp_parameters"
-    #create ws0 to enter Cr amt, nonane amt, Cr:L ratio, reaction time, PE masses
+    ws0a = wb.active
+    ws0a.title = "exp_parameters"
+    ws0a.append(["file","Cr(umol)","nonane(mg)","initial volume (mL)", "reaction time(h)","Cr:L (molar ratio)", "PE (mg)"])
+    for file in areas['filename']:
+        ws0a.append([file,cr_umol,nonane_mg,volume_mL,rxn_h,cr_l_ratio])
+    #enter Cr amt, nonane amt, GC-MS aliquot volume ratio, Cr:L ratio, reaction time, PE masses for each reactor
+    #auto-fill in some fields
     
     ws0b = wb.create_sheet()
     ws0b.title = "calib_curve"
@@ -141,18 +152,50 @@ def GCMSarea_to_excel(areas):
                 line.append(cell)
         ws0b.append(line)
     ws0b.append([])
-    ws0b.append(["Units:","minutes, +/- " + str(offset),"[units of slope]",None])
+    ws0b.append(["Units:","minutes, +/- " + str(offset),"mg/mL","TIC"])
     ws0b.append(["calibration data from: " + str(calib_date)])
+    ws0b.append(["SL, 3/9/2021: calibration still needs tweaking"])
+    
+    ws0c = wb.create_sheet()
+    ws0c.title = "math"
+    ws0c.append(["**Known**"])
+    ws0c.append(["best fit lines:","area(analyte) = m * conc(analyte) + b"])
+    ws0c.append(["conc(nonane)_initial:","mg/mL from experimental setup","=exp_parameters!C2/exp_parameters!D2"])
+    ws0c.append([])
+    ws0c.append(["**Calculate**"])
+    ws0c.append(["volume_final (mL)","volume_initial * conc(nonane)_final / conc(nonane)_initial","=exp_parameters!D2/calib_curve!C25*((GCMS_areas!H2-calib_curve!D8)/calib_curve!C8)"])
+    ws0c.append(["conc(analyte)","from best fit line"])
+    ws0c.append(["mg(analyte)","conc(analyte) * volume_final"])
+    
     
     ws1 = wb.create_sheet()
     ws1.title = "GCMS_areas"
     for r in dataframe_to_rows(areas, index=False, header=True):
         ws1.append(r)
     
+    #ws0a.append(["testing!"])
+    
     ws2 = wb.create_sheet()
-    ws2.title = "mg_avg"
+    ws2.title = "yield_mg"
     #write Excel equations to ws2, using pre-defined linear response factors, areas from ws1, and nonane amt
-    ws2.append([1,2,3])
+    masses = areas.copy()
+    for i,row in areas.iterrows():
+        #print("row: " + str(row))
+        for j,analyte in calib_curve.iterrows():
+            #print(analyte["slope"])
+            if row[j+1] == 0:
+                continue
+            #print(analyte["intercept"])
+            #masses.at[i,analyte['compound_name']] = analyte["slope"]*row[j+1]+analyte["intercept"]
+            slope = "calib_curve!C" + str(j+2)
+            area = "GCMS_areas!" + index_to_letter(j+2) + str(i+2)
+            intercept = "calib_curve!D" + str(j+2)
+            v_final = "math!C6"
+            masses.loc[i,analyte['compound_name']] = "=(" + area + "-" + intercept + ")/" + slope + "*" + v_final
+    for r in dataframe_to_rows(masses, index=False, header=True):
+        ws2.append(r)
+   
+    ws2.append(["SL, 3/9/2021: calibration formula still needs tweaking"])
     
     ws3 = wb.create_sheet()
     ws3.title = "output"
