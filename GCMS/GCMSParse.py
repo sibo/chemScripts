@@ -12,6 +12,8 @@ d = {'compound_name':["1-hexene","methylcyclopentane","methylenecyclopentane","1
      'retention_time':[2.51,2.97,3.37,8.66,[8.75,8.95],9.33,11.12123213,12.57,[8.75,8.95],15.03,[8.75,8.95],16.97,[8.75,8.95],19.06,[8.75,8.95],[22.81,30.0]],
      'slope':[0.0047,0.0047,0.0047,0.0081,0.0081,0.0081,0.00893,0.0094,0.0094,0.0115,0.0115,0.0136,0.0136,0.0162,0.0162,0.0148], # slope is (area analyte/area 111.96 mM nonane/mM analyte)
      'intercept':[-0.0049,-0.0049,-0.0049,-0.009,-0.009,0,0,-0.0144,-0.0144,-0.0271,-0.0271,-0.0355,-0.0355,-0.0435,-0.0435,-0.0747]}
+calib_date="[calibDate]"
+offset=0.1 #fudge factor in minutes for peak identification
 
 import pandas as pd
 calib_curve = pd.DataFrame(data=d)
@@ -25,7 +27,6 @@ def parse_GCMS(retention_times):
         dataframe columns: filename/index, 1-C6, C6isomers, 1-C8, C8isomers, PhCl, nonane, 1-C10, C10isomers, 1-C12, C12isomers, 1-C14, C14isomers, 1-C16, C16isomers, C18+
     """
     
-    offset=0.1 #fudge factor in minutes for peak identification
     import os
     dir_path = os.path.dirname(os.path.realpath(__file__))
     print("parsing GC-MS directory: " + dir_path)
@@ -88,11 +89,10 @@ def parse_GCMS(retention_times):
             data = data.append(areas,ignore_index=True)
     return data
 
-def GCMSarea_to_mass(areas,nonane_mg):
+def GCMSarea_to_mass(areas):
     """Converts GC-MS areas to actual masses produced in reactions (averaged over multiple injections of one sample)
         
     Input: dataframe of GC-MS areas;
-            float of nonane milligrams per reactor
     Output: pandas dataframe with mgs produced in each reactor
         dataframe rows: each row corresponds to sample (perhaps the average of multiple GC-MS injections)
         dataframe columns: filename/index, 1-C6, C6isomers, 1-C8, C8isomers, PhCl, nonane, 1-C10, C10isomers, 1-C12, C12isomers, 1-C14, C14isomers, 1-C16, C16isomers, C18+
@@ -111,6 +111,63 @@ def GCMSarea_to_mass(areas,nonane_mg):
     print("now average conc. for multiple injections of same sample")
     return masses
 
+def GCMSarea_to_excel(areas):
+    """Converts GC-MS areas to Excel workbook with sheets listing reaction outcomes
+    
+    Global pre-reqs: nonane_mg, calib_curve    
+    Input: dataframe of GC-MS areas
+    Output: pandas dataframe with mgs produced in each reactor
+        dataframe rows: each row corresponds to sample (perhaps the average of multiple GC-MS injections)
+        dataframe columns: filename/index, 1-C6, C6isomers, 1-C8, C8isomers, PhCl, nonane, 1-C10, C10isomers, 1-C12, C12isomers, 1-C14, C14isomers, 1-C16, C16isomers, C18+
+    """
+    
+    from openpyxl import Workbook
+    from openpyxl.utils.dataframe import dataframe_to_rows
+    import os
+    print("writing areas to Excel: " + str(areas))
+    wb = Workbook()
+    ws0 = wb.active
+    ws0.title = "exp_parameters"
+    #create ws0 to enter Cr amt, nonane amt, Cr:L ratio, reaction time, PE masses
+    
+    ws0b = wb.create_sheet()
+    ws0b.title = "calib_curve"
+    for r in dataframe_to_rows(calib_curve,index=False,header=True):
+        line = []
+        for cell in r:
+            if type(cell) == list:
+                line.append(str(cell)) #cast typing necessary for arrays
+            else:
+                line.append(cell)
+        ws0b.append(line)
+    ws0b.append([])
+    ws0b.append(["Units:","minutes, +/- " + str(offset),"[units of slope]",None])
+    ws0b.append(["calibration data from: " + str(calib_date)])
+    
+    ws1 = wb.create_sheet()
+    ws1.title = "GCMS_areas"
+    for r in dataframe_to_rows(areas, index=False, header=True):
+        ws1.append(r)
+    
+    ws2 = wb.create_sheet()
+    ws2.title = "mg_avg"
+    #write Excel equations to ws2, using pre-defined linear response factors, areas from ws1, and nonane amt
+    ws2.append([1,2,3])
+    
+    ws3 = wb.create_sheet()
+    ws3.title = "output"
+    #write Excel equations to ws3, calculating activities and selecitivites from ws2, and input from ws: Cr amt, PE mass, reaction time
+    
+    ws4 = wb.create_sheet()
+    ws4.title = "polished"
+    #reformat useful data from ws3 into pretty form
+    
+    #for cell in ws['A'] + ws[1]:
+    #    cell.style='Pandas'
+    
+    dir = os.path.dirname(os.path.realpath(__file__))    
+    wb.save(os.path.basename(dir) + "_output.xlsx")
+    
           
 def write_output(df):
     #input: a pandas dataframe for GC-MS peak areas, calculated masses, and relative concentrations
@@ -151,9 +208,11 @@ retention_times = {calib_curve['compound_name'][i] : calib_curve['retention_time
 raw_data = parse_GCMS(retention_times)
 print("****Raw Data****")
 print(raw_data)
-mass_data = GCMSarea_to_mass(raw_data,nonane_mg)
-print("****Mass Data****")
-print(mass_data)
+#mass_data = GCMSarea_to_mass(raw_data)
+#print("****Mass Data****")
+#print(mass_data)
+GCMSarea_to_excel(raw_data)
+
 
 """
 experiments=["AOT-SL-130-1","AOT-SL-130-2","AOT-SL-130-3","AOT-SL-130-4"]
