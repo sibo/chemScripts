@@ -13,10 +13,10 @@ cr_l_ratio = 1 #Cr/L molar ratio
 
 #calibration curve data--may need to modify this with new calibration curve values
 d = {'compound_name':["1-hexene","methylcyclopentane","methylenecyclopentane","1-octene","C8isomers","PhCl","nonane","1-decene","C10isomers","1-dodecene","C12isomers","1-tetradecene","C14isomers","1-hexadecene","C16isomers","C18+"],
-     'retention_time':[2.51,2.97,3.37,8.66,[8.75,8.95],9.33,11.12123213,12.57,[8.75,8.95],15.03,[8.75,8.95],16.97,[8.75,8.95],19.06,[8.75,8.95],[22.81,30.0]],
-     'slope':[0.0047,0.0047,0.0047,0.0081,0.0081,0.0081,0.00893,0.0094,0.0094,0.0115,0.0115,0.0136,0.0136,0.0162,0.0162,0.0148], # slope is (area analyte/area 111.96 mM nonane/mM analyte)
-     'intercept':[-0.0049,-0.0049,-0.0049,-0.009,-0.009,0,0,-0.0144,-0.0144,-0.0271,-0.0271,-0.0355,-0.0355,-0.0435,-0.0435,-0.0747]}
-calib_date="[calibDate]"
+     'retention_time':[2.51,2.97,3.37,8.44,[8.60,8.95],9.33,11.12123213,12.57,[13.0,13.2],14.93,[15.1,15.5],16.88,[17.1,17.9],18.91,[19.1,20],[22.2,30.0]],
+     'slope':[1056989.556,1056989.556,1056989.556,1370571.749,1370571.749,1370571.749,1363471.6,1272207.766,1272207.766,1298318.947,1298318.947,1318033.242,1318033.242,1371961.163,1371961.163,1111250.254], # slope is (area vs (mg/mL))
+     'intercept':[-92288.56637,-92288.56637,-92288.56637,-170851.4442,-170851.4442,-170851.4442,-174603.1091,-274056.3037,-274056.3037,-513338.3738,-513338.3738,-674383.8778,-674383.8778,-825350.7408,-825350.7408,-1416727.041]}
+calib_date="March 10 2021"
 offset=0.1 #fudge factor in minutes for peak identification
 
 import pandas as pd
@@ -65,20 +65,21 @@ def parse_GCMS(retention_times):
                 elif matchPeaks == 1:
                     time = float(line.split()[1])
                     for key in retention_times:
-                        t = retention_times[key]
-                        #print(str(time)+ " : " + str(t))
-                        if type(t) == float: #if specific analyte with single r.t.
-                            if abs(time - t) < offset: 
-                                peakNumbers[key] = line.split()[0]
-                                #print("match!")
-                                break
-                        elif type(t) ==  list:  #elif range of r.t.'s
-                            if time > t[0] and time < t[1]:
-                                if peakNumbers[key] == None:
-                                    peakNumbers[key]=[]
-                                peakNumbers[key].append(line.split()[0])
-                                #print(peakNumbers[key])
-                                break
+                        if peakNumbers[key] == None:
+                            t = retention_times[key]
+                            #print(str(time)+ " : " + str(t))
+                            if type(t) == float: #if specific analyte with single r.t.
+                                if abs(time - t) < offset: 
+                                    peakNumbers[key] = line.split()[0]
+                                    #print("match!")
+                                    break
+                            elif type(t) ==  list:  #elif range of r.t.'s
+                                if time > t[0] and time < t[1]:
+                                    if peakNumbers[key] == None:
+                                        peakNumbers[key]=[]
+                                    peakNumbers[key].append(line.split()[0])
+                                    #print(peakNumbers[key])
+                                    break
                 elif recordAreas == 1:
                     peak = line.split()[0]
                     for key in peakNumbers:
@@ -154,7 +155,12 @@ def GCMSarea_to_excel(areas):
     ws0b.append([])
     ws0b.append(["Units:","minutes, +/- " + str(offset),"mg/mL","TIC"])
     ws0b.append(["calibration data from: " + str(calib_date)])
-    ws0b.append(["SL, 3/9/2021: calibration still needs tweaking"])
+    ws0b.append(["SL, 3/9/2021: r.t. for higher oligomers and branched isomers may need tweaking"])
+    ws0b['E5']="1-octene peak max retention time varies significantly with concentration--higher conc. has a later eluting peak max"
+    ws0b['E7']="PhCl slope/intercept have not been determined--use 1-octene for now"
+    ws0b['E17']="C18+ slope/intercept determined from 1-octene standard"
+
+    
     
     ws0c = wb.create_sheet()
     ws0c.title = "math"
@@ -163,7 +169,7 @@ def GCMSarea_to_excel(areas):
     ws0c.append(["conc(nonane)_initial:","mg/mL from experimental setup","=exp_parameters!C2/exp_parameters!D2"])
     ws0c.append([])
     ws0c.append(["**Calculate**"])
-    ws0c.append(["volume_final (mL)","volume_initial * conc(nonane)_final / conc(nonane)_initial","=exp_parameters!D2/calib_curve!C25*((GCMS_areas!H2-calib_curve!D8)/calib_curve!C8)"])
+    ws0c.append(["volume_final (mL)","volume_initial * conc(nonane)_final / conc(nonane)_initial","=exp_parameters!D2/math!C3*((GCMS_areas!H2-calib_curve!D8)/calib_curve!C8)"])
     ws0c.append(["conc(analyte)","from best fit line"])
     ws0c.append(["mg(analyte)","conc(analyte) * volume_final"])
     
@@ -188,18 +194,44 @@ def GCMSarea_to_excel(areas):
             #print(analyte["intercept"])
             #masses.at[i,analyte['compound_name']] = analyte["slope"]*row[j+1]+analyte["intercept"]
             slope = "calib_curve!C" + str(j+2)
-            area = "GCMS_areas!" + index_to_letter(j+2) + str(i+2)
+            area = "GCMS_areas!" + index_to_letter(j+1) + str(i+2)
             intercept = "calib_curve!D" + str(j+2)
             v_final = "math!C6"
             masses.loc[i,analyte['compound_name']] = "=(" + area + "-" + intercept + ")/" + slope + "*" + v_final
+    
     for r in dataframe_to_rows(masses, index=False, header=True):
         ws2.append(r)
+    ws2["A1"] = "mg"
    
-    ws2.append(["SL, 3/9/2021: calibration formula still needs tweaking"])
+    #ws2b = wb.create_sheet()
+    #ws2b.title = "avgyield_mg"
+    #average over multiple GC-MS injections of the same sample, assuming certain file naming conventions
+    #ws2b not necessary, since GC-MS injections with internal standard seem to be fairly consistent! - Sibo, 3/10/2021
     
     ws3 = wb.create_sheet()
-    ws3.title = "output"
+    ws3.title = "activities"
     #write Excel equations to ws3, calculating activities and selecitivites from ws2, and input from ws: Cr amt, PE mass, reaction time
+    activities = areas.replace(areas,0)
+    activities['filename'] = areas['filename']
+    PE = []
+    totals = []
+    for i,row in areas.iterrows():
+        Cr_ug = "exp_parameters!B" + str(i+2) + "/52.00"
+        time = "exp_parameters!E" + str(i+2)
+        for j,analyte in calib_curve.iterrows():
+            if row[j+1] == 0:
+                continue
+            mass = "yield_mg!" + index_to_letter(j+1) + str(i+2)
+            if analyte['compound_name'] != 'PhCl' and analyte['compound_name'] != 'nonane':
+                activities.loc[i,analyte['compound_name']] = "=" + mass + "/" + Cr_ug + "/" + time
+        PE_mg = "exp_parameters!G" + str(i+2)
+        PE.append("=" + PE_mg + "/" + Cr_ug + "/" + time)
+        totals.append("=SUM(B" + str(i+2) + ":" + index_to_letter(len(calib_curve)+1) + str(i+2) + ")")
+    activities["PE"] = PE
+    activities["total"] = totals
+    for r in dataframe_to_rows(activities, index=False, header=True):
+        ws3.append(r)   
+    ws3["A1"] = "kg/gCr/h"        
     
     ws4 = wb.create_sheet()
     ws4.title = "polished"
@@ -207,6 +239,7 @@ def GCMSarea_to_excel(areas):
     
     #for cell in ws['A'] + ws[1]:
     #    cell.style='Pandas'
+    wb.active = 5
     
     dir = os.path.dirname(os.path.realpath(__file__))    
     wb.save(os.path.basename(dir) + "_output.xlsx")
